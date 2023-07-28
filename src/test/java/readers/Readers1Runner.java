@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 
 public class Readers1Runner {
@@ -33,6 +34,11 @@ public class Readers1Runner {
     @Test
     public void test3(){
         checkTxtFilesContentsSameFromDifferentFolder();
+
+    }
+    @Test
+    public void test4(){
+        findSameTxtXlsDocxFilesFromFolders();
 
     }
     public void findFileFromFolderAndCompareTheirContents(){
@@ -137,5 +143,84 @@ public class Readers1Runner {
         }
         return true; // İçerikleri tamamen eşleşiyorsa true döndür.
     }
+    public void findSameTxtXlsDocxFilesFromFolders(){//iki ayri folder da yer alan txt,xls ve docx dosyalarini tarar ve ayni icerikli olanlari return eder
+        String folderPath1="C:\\Users\\w\\Desktop\\employees actual";
+        String folderPath2="C:\\Users\\w\\Desktop\\employees expected";
+        Map<String, List<Path>> filesByExtension1 = getFilesByExtension(folderPath1);
+        Map<String, List<Path>> filesByExtension2 = getFilesByExtension(folderPath2);
+
+        for (String extension : filesByExtension1.keySet()) {
+            List<Path> files1 = filesByExtension1.get(extension);
+            List<Path> files2 = filesByExtension2.get(extension);
+
+            if (files1 == null || files2 == null) {
+                System.out.println("One of the folders does not contain ." + extension + " files.");
+                continue;
+            }
+
+            if (files1.size() != files2.size()) {
+                System.out.println("Number of ." + extension + " files in the folders do not match.");
+                continue;
+            }
+
+            for (int i = 0; i < files1.size(); i++) {
+                Path file1 = files1.get(i);
+                Path file2 = files2.get(i);
+
+                if (!compareFiles1(file1, file2)) {
+                    System.out.println(file1.getFileName() + " and " + file2.getFileName() + " do not have identical content.");
+                } else {
+                    System.out.println(file1.getFileName() + " and " + file2.getFileName() + " have identical content.");
+                }
+            }
+        }
+    }
+
+    public static Map<String, List<Path>> getFilesByExtension(String folderPath) {
+        Map<String, List<Path>> filesByExtension = new HashMap<>();
+        try {
+            List<Path> files = Files.list(Paths.get(folderPath)).collect(Collectors.toList());
+
+            for (Path file : files) {
+                String extension = getFileExtension(file);
+                filesByExtension.computeIfAbsent(extension, k -> new ArrayList<>()).add(file);
+                filesByExtension.get(extension).add(file);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return filesByExtension;
+    }
+
+    public static String getFileExtension(Path file) {
+        String fileName = file.getFileName().toString();
+        int lastDotIndex = fileName.lastIndexOf(".");
+        if (lastDotIndex > 0) {
+            return fileName.substring(lastDotIndex + 1);
+        }
+        return "";
+    }
+
+    public static boolean compareFiles1(Path file1, Path file2) {
+        try {
+            byte[] content1 = Files.readAllBytes(file1);
+            byte[] content2 = Files.readAllBytes(file2);
+
+            if (content1.length != content2.length) {
+                return false;
+            }
+
+            for (int i = 0; i < content1.length; i++) {
+                if (content1[i] != content2[i]) {
+                    return false;
+                }
+            }
+            return true;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
 }
+
 
